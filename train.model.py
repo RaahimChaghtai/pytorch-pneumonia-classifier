@@ -9,7 +9,14 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms, models
 from sklearn.metrics import accuracy_score
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
+
+print(f"Using device: {device}", flush=True)
 
 class PneumoniaDataset(Dataset):
     
@@ -54,6 +61,12 @@ train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
+print(
+    f"Loaded {len(train_dataset)} train, {len(val_dataset)} val, {len(test_dataset)} test images",
+    flush=True,
+)
+
+print("Loading ResNet18 (downloads weights on first run)...", flush=True)
 model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
 model.fc = nn.Linear(model.fc.in_features, 2)  # NORMAL and PNEUMONIA classes
 model = model.to(device)
@@ -66,8 +79,9 @@ num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
+    print(f"\nEpoch {epoch + 1}/{num_epochs} — training...", flush=True)
 
-    for images, labels in train_loader:
+    for batch_idx, (images, labels) in enumerate(train_loader, start=1):
         images = images.to(device)
         labels = labels.to(device)
 
@@ -77,10 +91,12 @@ for epoch in range(num_epochs):
         loss.backward()
 
         optimizer.step()
-        running_loss += loss
+        running_loss += loss.item()
 
+        if batch_idx == 1 or batch_idx % 10 == 0 or batch_idx == len(train_loader):
+            print(f"  batch {batch_idx}/{len(train_loader)}", flush=True)
 
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}")
+    print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader):.4f}", flush=True)
 
     model.eval()
     val_labels = []
@@ -99,7 +115,7 @@ for epoch in range(num_epochs):
 
     
     val_accuracy = accuracy_score(val_labels, val_predictions)
-    print(f"Validation Accuracy: {val_accuracy}")
+    print(f"Validation Accuracy: {val_accuracy:.4f}", flush=True)
 
 
 model.eval()
@@ -118,8 +134,10 @@ with torch.no_grad():
         test_predictions.extend(predictions.cpu().numpy())
 
 test_accuracy = accuracy_score(test_labels, test_predictions)
-print(f"Test Accuracy: {test_accuracy}")
+print(f"Test Accuracy: {test_accuracy:.4f}", flush=True)
 
 torch.save(model.state_dict(), 'pneumonia_classifier.pth')
+print("Saved model to pneumonia_classifier.pth", flush=True)
 
 
+ 
