@@ -1,0 +1,44 @@
+<html>
+    <head>
+        <title>X-Ray Image Upload</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f0f0f0;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            img { max-width: 100%; height: auto; margin-bottom: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>X-Ray Image Upload</h1>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="file" name="image" accept="image/*" required>
+                <br><br>
+                <button type="submit">Upload and Predict</button>
+            </form>
+
+            {% if error %}
+            <p style="color: red;">{{ error }}</p>
+            {% endif %}
+
+            {% if original_image and prediction %}
+            <div>
+                <h3>Original Image</h3>
+                <img src="{{ original_image }}" alt="Original Image">
+            </div>
+
+            <div>
+                <h3>Prediction</h3>
+                <p>{{ prediction }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </body>
+</html>
